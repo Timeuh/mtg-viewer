@@ -38,7 +38,7 @@ class ImportCardCommand extends Command
         $io = new SymfonyStyle($input, $output);
         $filepath = __DIR__ . '/../../data/cards.csv';
         $handle = fopen($filepath, 'r');
-
+        $cards = $this->cardRepository->getAllUuids();
         $start = microtime(true);
 
         $this->logger->info('Importing cards from ' . $filepath);
@@ -51,7 +51,7 @@ class ImportCardCommand extends Command
         $this->csvHeader = fgetcsv($handle);
         while (($row = $this->readCSV($handle)) !== false) {
             $i++;
-            $this->addCard($row);
+            $this->addCard($row, $cards);
 
             if ($i % 2000 === 0) {
                 $io->success($i . ' lines read.');
@@ -81,11 +81,11 @@ class ImportCardCommand extends Command
         return array_combine($this->csvHeader, $row);
     }
 
-    private function addCard(array $row): Card
+    private function addCard(array $row, array $cards): Card
     {
         $uuid = $row['uuid'];
 
-        $card = $this->cardRepository->findOneBy(['uuid' => $uuid]);
+        $card = $cards[$uuid] ?? null;
         if ($card === null) {
             $card = new Card();
             $card->setUuid($uuid);
