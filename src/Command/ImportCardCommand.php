@@ -39,6 +39,8 @@ class ImportCardCommand extends Command
         $filepath = __DIR__ . '/../../data/cards.csv';
         $handle = fopen($filepath, 'r');
 
+        $start = microtime(true);
+
         $this->logger->info('Importing cards from ' . $filepath);
         if ($handle === false) {
             $io->error('File not found');
@@ -49,16 +51,24 @@ class ImportCardCommand extends Command
         $this->csvHeader = fgetcsv($handle);
         while (($row = $this->readCSV($handle)) !== false) {
             $i++;
-            $io->writeln($this->addCard($row)->getName());
+            $this->addCard($row);
 
-            // TODO: Importer toutes les cartes
-            if ($i > 500) {
+            if ($i % 2000 === 0) {
+                $io->success($i . ' lines read.');
+                $this->entityManager->flush();
+                $this->entityManager->clear();
+            }
+
+            if ($i > 90000) {
                 break;
             }
         }
 
+        $this->entityManager->flush();
         fclose($handle);
-        $io->success('File found, ' . $i . ' lines read.');
+
+        $end = microtime(true);
+        $io->success('Execution time: ' . ($end - $start) . ' seconds. File found, ' . $i . ' lines read.');
         return Command::SUCCESS;
     }
 
@@ -88,7 +98,6 @@ class ImportCardCommand extends Command
             $card->setText($row['text']);
             $card->setType($row['type']);
             $this->entityManager->persist($card);
-            $this->entityManager->flush();
         }
         return $card;
     }
