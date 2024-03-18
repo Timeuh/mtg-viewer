@@ -34,16 +34,19 @@ class ImportCardCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        $this->logger->info('Importing cards');
+
         // On récupère le temps actuel
         $io = new SymfonyStyle($input, $output);
         $filepath = __DIR__ . '/../../data/cards.csv';
         $handle = fopen($filepath, 'r');
         $cards = $this->cardRepository->getAllUuids();
         $start = microtime(true);
-
         $this->logger->info('Importing cards from ' . $filepath);
+
         if ($handle === false) {
             $io->error('File not found');
+            $this->logger->error('File not found');
             return Command::FAILURE;
         }
 
@@ -68,7 +71,7 @@ class ImportCardCommand extends Command
         fclose($handle);
 
         $end = microtime(true);
-        $io->success('Execution time: ' . ($end - $start) . ' seconds. File found, ' . $i . ' lines read.');
+        $this->logger->info('Execution time: ' . ($end - $start) . ' seconds. File found, ' . $i . ' lines read.');
         return Command::SUCCESS;
     }
 
@@ -76,6 +79,7 @@ class ImportCardCommand extends Command
     {
         $row = fgetcsv($handle);
         if ($row === false) {
+            $this->logger->info('End of file');
             return false;
         }
         return array_combine($this->csvHeader, $row);
